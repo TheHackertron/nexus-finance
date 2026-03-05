@@ -13,10 +13,17 @@ api.interceptors.request.use((config) => {
   return config
 })
 
+const clearAuthAndRedirect = () => {
+  localStorage.removeItem("token")
+  localStorage.removeItem("user")
+  window.location.href = "/login"
+}
+
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config
+
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true
       try {
@@ -25,18 +32,20 @@ api.interceptors.response.use(
           {},
           { withCredentials: true }
         )
-        if (res.data.success) {
+        if (res.data.success && res.data.data?.accessToken) {
           const newToken = res.data.data.accessToken
           localStorage.setItem("token", newToken)
           originalRequest.headers.Authorization = `Bearer ${newToken}`
           return api(originalRequest)
         }
       } catch {
-        localStorage.removeItem("token")
-        localStorage.removeItem("user")
-        window.location.href = "/login"
+        // refresh request itself failed (network error, server down)
       }
+
+      clearAuthAndRedirect()
+      return new Promise(() => {})
     }
+
     return Promise.reject(error)
   }
 )
