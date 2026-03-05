@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { Button } from "react-bootstrap"
+import { Button, Alert } from "react-bootstrap"
 import { BsPlus, BsDownload } from "react-icons/bs"
 import {
   getTransactionsAPI,
@@ -19,11 +19,14 @@ export default function Transactions() {
   const [selected, setSelected] = useState([])
   const [isOpen, setIsOpen] = useState(false)
   const [editing, setEditing] = useState(null)
+  const [error, setError] = useState("")
 
   const fetchTransactions = async () => {
     try {
       const res = await getTransactionsAPI(filters)
-      if (res.data.success) setTransactions(res.data.data)
+      if (res.data.success) {
+        setTransactions(res.data.data)
+      }
     } catch (err) {
       console.error("Failed to fetch transactions:", err)
     }
@@ -34,17 +37,42 @@ export default function Transactions() {
   }, [])
 
   const handleSubmit = async (data) => {
+    setError("")
     try {
-      if (editing) {
-        await updateTransactionAPI(editing._id, data)
+      const res = editing
+        ? await updateTransactionAPI(editing._id, data)
+        : await createTransactionAPI(data)
+
+      if (res.data.success) {
+        setIsOpen(false)
+        setEditing(null)
+        fetchTransactions()
       } else {
-        await createTransactionAPI(data)
+        setError(res.data.message || "Failed to save transaction")
       }
-      setIsOpen(false)
-      setEditing(null)
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to save transaction. Please try again.")
+    }
+  }
+
+  const handleDelete = async (id) => {
+    try {
+      const res = await deleteTransactionAPI(id)
+      if (!res.data.success) setError(res.data.message)
       fetchTransactions()
     } catch (err) {
-      console.error("Failed to save transaction:", err)
+      setError(err.response?.data?.message || "Failed to delete transaction")
+    }
+  }
+
+  const handleBulkDelete = async (ids) => {
+    try {
+      const res = await bulkDeleteTransactionsAPI(ids)
+      if (!res.data.success) setError(res.data.message)
+      setSelected([])
+      fetchTransactions()
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to delete transactions")
     }
   }
 
@@ -59,7 +87,7 @@ export default function Transactions() {
       link.click()
       link.remove()
     } catch (err) {
-      console.error("CSV export failed:", err)
+      setError("CSV export failed")
     }
   }
 
@@ -71,11 +99,17 @@ export default function Transactions() {
           <Button variant="outline-dark" size="sm" onClick={handleExportCSV}>
             <BsDownload className="me-1" /> CSV
           </Button>
-          <Button variant="dark" size="sm" onClick={() => setIsOpen(true)}>
+          <Button variant="dark" size="sm" onClick={() => { setError(""); setIsOpen(true) }}>
             <BsPlus size={18} /> Add Transaction
           </Button>
         </div>
       </div>
+
+      {error && (
+        <Alert variant="danger" dismissible onClose={() => setError("")} className="py-2">
+          {error}
+        </Alert>
+      )}
 
       <FilterBar filters={filters} setFilters={setFilters} onApply={fetchTransactions} />
 
@@ -83,9 +117,9 @@ export default function Transactions() {
         transactions={transactions}
         selected={selected}
         setSelected={setSelected}
-        onEdit={(t) => { setEditing(t); setIsOpen(true) }}
-        onDelete={async (id) => { await deleteTransactionAPI(id); fetchTransactions() }}
-        onBulkDelete={async (ids) => { await bulkDeleteTransactionsAPI(ids); setSelected([]); fetchTransactions() }}
+        onEdit={(t) => { setError(""); setEditing(t); setIsOpen(true) }}
+        onDelete={handleDelete}
+        onBulkDelete={handleBulkDelete}
       />
 
       <TransactionForm

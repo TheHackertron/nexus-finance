@@ -4,7 +4,7 @@ module.exports = (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.json({ success: false, message: 'No token provided' });
+      return res.status(401).json({ success: false, message: 'No token provided' });
     }
 
     const token = authHeader.split(' ')[1];
@@ -12,6 +12,6 @@ module.exports = (req, res, next) => {
     req.userId = decoded.id;
     next();
   } catch (err) {
-    res.json({ success: false, message: 'Invalid or expired token' });
+    res.status(401).json({ success: false, message: 'Invalid or expired token' });
   }
 };

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { Button, Row, Col } from "react-bootstrap"
+import { Button, Row, Col, Alert } from "react-bootstrap"
 import { BsPlus } from "react-icons/bs"
 import {
   getBudgetsAPI,
@@ -14,6 +14,7 @@ export default function Budgets() {
   const [budgets, setBudgets] = useState([])
   const [isOpen, setIsOpen] = useState(false)
   const [editing, setEditing] = useState(null)
+  const [error, setError] = useState("")
 
   const fetchBudgets = async () => {
     try {
@@ -29,26 +30,31 @@ export default function Budgets() {
   }, [])
 
   const handleSubmit = async (data) => {
+    setError("")
     try {
-      if (editing) {
-        await updateBudgetAPI(editing._id, data)
+      const res = editing
+        ? await updateBudgetAPI(editing._id, data)
+        : await createBudgetAPI(data)
+
+      if (res.data.success) {
+        setIsOpen(false)
+        setEditing(null)
+        fetchBudgets()
       } else {
-        await createBudgetAPI(data)
+        setError(res.data.message || "Failed to save budget")
       }
-      setIsOpen(false)
-      setEditing(null)
-      fetchBudgets()
     } catch (err) {
-      console.error("Failed to save budget:", err)
+      setError(err.response?.data?.message || "Failed to save budget. Please try again.")
     }
   }
 
   const handleDelete = async (id) => {
     try {
-      await deleteBudgetAPI(id)
+      const res = await deleteBudgetAPI(id)
+      if (!res.data.success) setError(res.data.message)
       fetchBudgets()
     } catch (err) {
-      console.error("Failed to delete budget:", err)
+      setError(err.response?.data?.message || "Failed to delete budget")
     }
   }
 
@@ -56,10 +62,16 @@ export default function Budgets() {
     <div>
       <div className="d-flex justify-content-between align-items-center mb-3">
         <h4 className="fw-bold mb-0">Budgets</h4>
-        <Button variant="dark" size="sm" onClick={() => setIsOpen(true)}>
+        <Button variant="dark" size="sm" onClick={() => { setError(""); setIsOpen(true) }}>
           <BsPlus size={18} /> Add Budget
         </Button>
       </div>
+
+      {error && (
+        <Alert variant="danger" dismissible onClose={() => setError("")} className="py-2">
+          {error}
+        </Alert>
+      )}
 
       {budgets.length === 0 ? (
         <div className="text-center text-muted py-5">
@@ -74,7 +86,7 @@ export default function Budgets() {
             <Col md={4} key={budget._id}>
               <BudgetCard
                 budget={budget}
-                onEdit={(b) => { setEditing(b); setIsOpen(true) }}
+                onEdit={(b) => { setError(""); setEditing(b); setIsOpen(true) }}
                 onDelete={handleDelete}
               />
             </Col>
