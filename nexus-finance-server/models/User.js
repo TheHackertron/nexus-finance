@@ -11,7 +11,8 @@ const userSchema = new mongoose.Schema({
     type: [String],
     default: ['Food', 'Transport', 'Shopping', 'Bills', 'Entertainment', 'Health', 'Other']
   },
-  refreshToken: { type: String, default: '' }
+  refreshToken: { type: String, default: '' },
+  onboarded: { type: Boolean, default: false }
 }, { timestamps: true });
 
 module.exports = mongoose.model('User', userSchema);

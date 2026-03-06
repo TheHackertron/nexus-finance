@@ -43,7 +43,7 @@ exports.login = async (req, res) => {
     await user.save();
 
     res.cookie('refreshToken', refreshToken, { httpOnly: true, maxAge: 7 * 24 * 60 * 60 * 1000 });
-    res.json({ success: true, data: { accessToken, user: { id: user._id, name: user.name, email: user.email } } });
+    res.json({ success: true, data: { accessToken, user: { id: user._id, name: user.name, email: user.email, onboarded: user.onboarded } } });
   } catch (err) {
     res.json({ success: false, message: err.message });
   }
@@ -86,7 +86,7 @@ exports.onboard = async (req, res) => {
     const { income, currency, categories } = req.body;
     const user = await User.findByIdAndUpdate(
       req.userId,
-      { income, currency, categories },
+      { income, currency, categories, onboarded: true },
       { new: true }
     );
     res.json({ success: true, data: { income: user.income, currency: user.currency, categories: user.categories } });

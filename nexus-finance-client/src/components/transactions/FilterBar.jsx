@@ -53,7 +53,7 @@ export default function FilterBar({ filters, setFilters, onApply }) {
             size="sm"
             onClick={() => {
               setFilters({})
-              onApply()
+              onApply({})
             }}
           >
             Clear

@@ -128,7 +128,7 @@ export default function Dashboard() {
                 <Col md={6} key={i}>
                   <Alert
                     variant={insightVariant[insight.type] || "secondary"}
-                    className="insight-card insight-${insight.type} mb-0"
+                    className={`insight-card insight-${insight.type} mb-0`}
                   >
                     <Alert.Heading as="h6" className="mb-1 fs-6">
                       {insight.title}

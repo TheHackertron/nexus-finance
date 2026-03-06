@@ -21,9 +21,9 @@ export default function Transactions() {
   const [editing, setEditing] = useState(null)
   const [error, setError] = useState("")
 
-  const fetchTransactions = async () => {
+  const fetchTransactions = async (overrideFilters) => {
     try {
-      const res = await getTransactionsAPI(filters)
+      const res = await getTransactionsAPI(overrideFilters !== undefined ? overrideFilters : filters)
       if (res.data.success) {
         setTransactions(res.data.data)
       }

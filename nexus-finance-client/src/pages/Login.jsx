@@ -19,7 +19,7 @@ export default function Login() {
       const res = await loginAPI(form)
       if (res.data.success) {
         login(res.data.data.user, res.data.data.accessToken)
-        navigate("/")
+        navigate(res.data.data.user.onboarded ? "/" : "/onboarding")
       } else {
         setError(res.data.message || "Login failed")
       }

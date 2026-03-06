@@ -52,6 +52,21 @@ exports.deleteBudget = async (req, res) => {
   }
 };
 
+// Decrement budget spent (called when expense transaction is deleted)
+exports.decrementBudgetSpent = async (userId, category, month, year, amount) => {
+  try {
+    const budget = await Budget.findOne({ user: userId, category, month, year });
+    if (!budget) return;
+    budget.spent = Math.max(0, budget.spent - amount);
+    if (budget.spent < budget.amount) {
+      budget.notified = false;
+    }
+    await budget.save();
+  } catch (err) {
+    console.error('Budget decrement failed:', err.message);
+  }
+};
+
 // Check overspend
 exports.checkOverspend = async (userId, category, month, year, amount) => {
   try {

@@ -1,9 +1,14 @@
 const Transaction = require('../models/Transaction');
+const { checkOverspend, decrementBudgetSpent } = require('./budget.controller');
 
 // Create transaction
 exports.createTransaction = async (req, res) => {
   try {
     const transaction = await Transaction.create({ ...req.body, user: req.userId });
+    if (transaction.type === 'expense') {
+      const date = new Date(transaction.date);
+      await checkOverspend(req.userId, transaction.category, date.getMonth() + 1, date.getFullYear(), transaction.amount);
+    }
     res.json({ success: true, data: transaction });
   } catch (err) {
     res.json({ success: false, message: err.message });
@@ -67,6 +72,10 @@ exports.deleteTransaction = async (req, res) => {
   try {
     const transaction = await Transaction.findOneAndDelete({ _id: req.params.id, user: req.userId });
     if (!transaction) return res.json({ success: false, message: 'Transaction not found' });
+    if (transaction.type === 'expense') {
+      const date = new Date(transaction.date);
+      await decrementBudgetSpent(req.userId, transaction.category, date.getMonth() + 1, date.getFullYear(), transaction.amount);
+    }
     res.json({ success: true, data: 'Transaction deleted' });
   } catch (err) {
     res.json({ success: false, message: err.message });
@@ -77,7 +86,14 @@ exports.deleteTransaction = async (req, res) => {
 exports.bulkDelete = async (req, res) => {
   try {
     const { ids } = req.body;
+    const transactions = await Transaction.find({ _id: { $in: ids }, user: req.userId });
     await Transaction.deleteMany({ _id: { $in: ids }, user: req.userId });
+    for (const t of transactions) {
+      if (t.type === 'expense') {
+        const date = new Date(t.date);
+        await decrementBudgetSpent(req.userId, t.category, date.getMonth() + 1, date.getFullYear(), t.amount);
+      }
+    }
     res.json({ success: true, data: 'Transactions deleted' });
   } catch (err) {
     res.json({ success: false, message: err.message });
